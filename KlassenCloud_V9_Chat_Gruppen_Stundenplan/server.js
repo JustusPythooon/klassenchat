@@ -81,4 +81,6 @@ if(req.method==='GET'&&p==='/api/admin/users'){const a=admin(req,res);if(!a)retu
 }
 function loginResponse(res,u){u.lastSeen=Date.now();save();const sid=crypto.randomBytes(32).toString('hex');sessions.set(sid,u.id);return send(res,200,{ok:true,user:pub(u)},{'Set-Cookie':`sid=${sid}; HttpOnly; SameSite=Lax; Path=/; Max-Age=604800`})}
 const server=http.createServer(async(req,res)=>{try{const p=url.parse(req.url).pathname;if(p.startsWith('/api/'))return await api(req,res,p);let file=path.normalize(path.join(ROOT,p==='/'?'index.html':p));if(!file.startsWith(ROOT))return send(res,403,'Forbidden');if(!fs.existsSync(file)||fs.statSync(file).isDirectory())file=path.join(ROOT,'index.html');res.writeHead(200,{'Content-Type':mime[path.extname(file)]||'application/octet-stream'});fs.createReadStream(file).pipe(res)}catch(e){console.error(e);send(res,500,{error:'Serverfehler'})}});
-const port=Number(process.env.PORT||3000);server.on('error',e=>{console.error(e.code==='EADDRINUSE'?`Port ${port} ist bereits belegt. Beende den anderen KlassenCloud-Server oder starte mit PORT=3001.`:e);process.exit(1)});server.listen(port,'127.0.0.1',()=>console.log(`KlassenCloud läuft auf http://127.0.0.1:${port}`));
+const port=Number(process.env.PORT||3000);server.on('error',e=>{console.error(e.code==='EADDRINUSE'?`Port ${port} ist bereits belegt. Beende den anderen KlassenCloud-Server oder starte mit PORT=3001.`:e);process.exit(1)});server.listen(port, '0.0.0.0', () => {
+    console.log(`KlassenCloud läuft auf Port ${port}`);
+});
