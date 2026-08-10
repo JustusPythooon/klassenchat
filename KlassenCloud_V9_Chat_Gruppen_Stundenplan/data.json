@@ -2,7 +2,7 @@
   "users": [
     {
       "id": 1,
-      "name": "Administrator",
+      "name": "Admin",
       "passwordHash": "76170d71b29b18439ed0a8bff1e6592acdc125603b97fa37aac8ce9bbf58e89e07c75ca065268f8169ba7245b6c6f099d93335e1d600ef93e2efd21758ab3b47",
       "passwordSalt": "7ba294174efba1ffa0be5ea9cffa4e55",
       "role": "admin",
@@ -24,16 +24,11 @@
   "classes": [
     {
       "id": 1,
-      "name": "8A",
-      "ownerId": 1,
-      "createdAt": "2026-08-10T17:35:39.082Z"
-    },
-    {
-      "id": 2,
-      "name": "10B",
+      "name": "8a",
       "ownerId": 1,
       "createdAt": "2026-08-10T17:35:39.082Z"
     }
+    
   ],
   "memberships": [
     {
