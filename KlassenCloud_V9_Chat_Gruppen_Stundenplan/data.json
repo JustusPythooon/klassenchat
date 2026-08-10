@@ -1,0 +1,347 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "Administrator",
+      "passwordHash": "76170d71b29b18439ed0a8bff1e6592acdc125603b97fa37aac8ce9bbf58e89e07c75ca065268f8169ba7245b6c6f099d93335e1d600ef93e2efd21758ab3b47",
+      "passwordSalt": "7ba294174efba1ffa0be5ea9cffa4e55",
+      "role": "admin",
+      "status": "active",
+      "lastSeen": 1786383586305,
+      "createdAt": "2026-08-10T17:35:39.081Z"
+    },
+    {
+      "id": 1786383347507,
+      "name": "Test User",
+      "passwordHash": "dcf2fc5f6b45e84d87c99edee7ea3f21aac83c625af5802c86817965358b7bdbc785cd54a8ec450a44a7147887e623031f26c2420287945ad0e3901174050c14",
+      "passwordSalt": "69a41b2c86ea4a1108327c22e358369c",
+      "role": "user",
+      "status": "active",
+      "createdAt": "2026-08-10T17:35:47.507Z",
+      "lastSeen": 1786383347520
+    }
+  ],
+  "classes": [
+    {
+      "id": 1,
+      "name": "8A",
+      "ownerId": 1,
+      "createdAt": "2026-08-10T17:35:39.082Z"
+    },
+    {
+      "id": 2,
+      "name": "10B",
+      "ownerId": 1,
+      "createdAt": "2026-08-10T17:35:39.082Z"
+    }
+  ],
+  "memberships": [
+    {
+      "userId": 1,
+      "classId": 1,
+      "role": "admin"
+    },
+    {
+      "userId": 1786383347507,
+      "classId": 1,
+      "role": "member"
+    }
+  ],
+  "chats": [],
+  "messages": [
+    {
+      "id": 1786383564006.313,
+      "chatType": "class",
+      "chatId": 1,
+      "userId": 1,
+      "text": "hi",
+      "createdAt": "2026-08-10T17:39:24.006Z"
+    }
+  ],
+  "groups": [],
+  "groupMembers": [],
+  "audit": [],
+  "files": [],
+  "events": [],
+  "groupFiles": [],
+  "groupEvents": [],
+  "timetable": [
+    {
+      "id": 1786383339082.285,
+      "classId": 1,
+      "day": 1,
+      "period": 1,
+      "subject": "Mathematik",
+      "teacher": "Herr Müller",
+      "room": "204"
+    },
+    {
+      "id": 1786383339082.4673,
+      "classId": 1,
+      "day": 1,
+      "period": 2,
+      "subject": "Deutsch",
+      "teacher": "Frau Weber",
+      "room": "201"
+    },
+    {
+      "id": 1786383339082.6396,
+      "classId": 1,
+      "day": 1,
+      "period": 3,
+      "subject": "Englisch",
+      "teacher": "Herr Klein",
+      "room": "203"
+    },
+    {
+      "id": 1786383339082,
+      "classId": 1,
+      "day": 1,
+      "period": 4,
+      "subject": "Biologie",
+      "teacher": "Frau Lang",
+      "room": "105"
+    },
+    {
+      "id": 1786383339082.457,
+      "classId": 1,
+      "day": 1,
+      "period": 5,
+      "subject": "Sport",
+      "teacher": "Herr Bauer",
+      "room": "Turnhalle"
+    },
+    {
+      "id": 1786383339082.556,
+      "classId": 1,
+      "day": 1,
+      "period": 6,
+      "subject": "Geschichte",
+      "teacher": "Frau Roth",
+      "room": "202"
+    },
+    {
+      "id": 1786383339082.516,
+      "classId": 1,
+      "day": 2,
+      "period": 1,
+      "subject": "Deutsch",
+      "teacher": "Frau Weber",
+      "room": "201"
+    },
+    {
+      "id": 1786383339082.297,
+      "classId": 1,
+      "day": 2,
+      "period": 2,
+      "subject": "Mathematik",
+      "teacher": "Herr Müller",
+      "room": "204"
+    },
+    {
+      "id": 1786383339082.9756,
+      "classId": 1,
+      "day": 2,
+      "period": 3,
+      "subject": "Physik",
+      "teacher": "Herr Sommer",
+      "room": "106"
+    },
+    {
+      "id": 1786383339082.9915,
+      "classId": 1,
+      "day": 2,
+      "period": 4,
+      "subject": "Kunst",
+      "teacher": "Frau König",
+      "room": "107"
+    },
+    {
+      "id": 1786383339083.5713,
+      "classId": 1,
+      "day": 2,
+      "period": 5,
+      "subject": "Englisch",
+      "teacher": "Herr Klein",
+      "room": "203"
+    },
+    {
+      "id": 1786383339083.0598,
+      "classId": 1,
+      "day": 2,
+      "period": 6,
+      "subject": "Musik",
+      "teacher": "Frau Wolf",
+      "room": "Aula"
+    },
+    {
+      "id": 1786383339083.2043,
+      "classId": 1,
+      "day": 3,
+      "period": 1,
+      "subject": "Englisch",
+      "teacher": "Herr Klein",
+      "room": "203"
+    },
+    {
+      "id": 1786383339083.4785,
+      "classId": 1,
+      "day": 3,
+      "period": 2,
+      "subject": "Mathematik",
+      "teacher": "Herr Müller",
+      "room": "204"
+    },
+    {
+      "id": 1786383339083.2024,
+      "classId": 1,
+      "day": 3,
+      "period": 3,
+      "subject": "Geschichte",
+      "teacher": "Frau Roth",
+      "room": "202"
+    },
+    {
+      "id": 1786383339083.022,
+      "classId": 1,
+      "day": 3,
+      "period": 4,
+      "subject": "Deutsch",
+      "teacher": "Frau Weber",
+      "room": "201"
+    },
+    {
+      "id": 1786383339083.0225,
+      "classId": 1,
+      "day": 3,
+      "period": 5,
+      "subject": "Informatik",
+      "teacher": "Herr Maier",
+      "room": "PC1"
+    },
+    {
+      "id": 1786383339083.9766,
+      "classId": 1,
+      "day": 3,
+      "period": 6,
+      "subject": "Sport",
+      "teacher": "Herr Bauer",
+      "room": "Turnhalle"
+    },
+    {
+      "id": 1786383339083.252,
+      "classId": 1,
+      "day": 4,
+      "period": 1,
+      "subject": "Mathematik",
+      "teacher": "Herr Müller",
+      "room": "204"
+    },
+    {
+      "id": 1786383339083.7864,
+      "classId": 1,
+      "day": 4,
+      "period": 2,
+      "subject": "Biologie",
+      "teacher": "Frau Lang",
+      "room": "105"
+    },
+    {
+      "id": 1786383339083.7847,
+      "classId": 1,
+      "day": 4,
+      "period": 3,
+      "subject": "Deutsch",
+      "teacher": "Frau Weber",
+      "room": "201"
+    },
+    {
+      "id": 1786383339083.9841,
+      "classId": 1,
+      "day": 4,
+      "period": 4,
+      "subject": "Geografie",
+      "teacher": "Frau Roth",
+      "room": "202"
+    },
+    {
+      "id": 1786383339083.817,
+      "classId": 1,
+      "day": 4,
+      "period": 5,
+      "subject": "Englisch",
+      "teacher": "Herr Klein",
+      "room": "203"
+    },
+    {
+      "id": 1786383339083.2668,
+      "classId": 1,
+      "day": 4,
+      "period": 6,
+      "subject": "Kunst",
+      "teacher": "Frau König",
+      "room": "107"
+    },
+    {
+      "id": 1786383339083.109,
+      "classId": 1,
+      "day": 5,
+      "period": 1,
+      "subject": "Deutsch",
+      "teacher": "Frau Weber",
+      "room": "201"
+    },
+    {
+      "id": 1786383339083.67,
+      "classId": 1,
+      "day": 5,
+      "period": 2,
+      "subject": "Mathematik",
+      "teacher": "Herr Müller",
+      "room": "204"
+    },
+    {
+      "id": 1786383339083.2454,
+      "classId": 1,
+      "day": 5,
+      "period": 3,
+      "subject": "Chemie",
+      "teacher": "Herr Sommer",
+      "room": "106"
+    },
+    {
+      "id": 1786383339083.7808,
+      "classId": 1,
+      "day": 5,
+      "period": 4,
+      "subject": "Geschichte",
+      "teacher": "Frau Roth",
+      "room": "202"
+    },
+    {
+      "id": 1786383339083.742,
+      "classId": 1,
+      "day": 5,
+      "period": 5,
+      "subject": "Sport",
+      "teacher": "Herr Bauer",
+      "room": "Turnhalle"
+    },
+    {
+      "id": 1786383339083.8513,
+      "classId": 1,
+      "day": 5,
+      "period": 6,
+      "subject": "Klassenstunde",
+      "teacher": "Frau Weber",
+      "room": "201"
+    }
+  ],
+  "timetableSettings": [
+    {
+      "classId": 1,
+      "lessonMinutes": 45,
+      "breakMinutes": 15
+    }
+  ]
+}
