@@ -1,0 +1,1 @@
+{"version":"21.0.0","name":"Chat notifications overhaul","changes":["Benachrichtigungen zeigen Absender und Chat","Nur der geöffnete Chat wird als gelesen markiert","Doppelte Push/Browser-Benachrichtigungen verhindert","Benachrichtigungs-Center mit Chat-Navigation","Push-Tagging pro Chat verbessert"]}
