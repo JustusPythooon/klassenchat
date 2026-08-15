@@ -1,0 +1,26 @@
+{
+  "version": "V16 FIX5",
+  "requested_features": {
+    "teacher_role": true,
+    "chat": [
+      "reply_to_message",
+      "edit_message",
+      "delete_message",
+      "reactions",
+      "file_and_image_uploads",
+      "voice_messages",
+      "typing_indicator",
+      "online_last_seen",
+      "unread_messages",
+      "chat_search",
+      "pinned_messages"
+    ],
+    "reminders": [
+      "homework",
+      "appointments",
+      "push_notifications"
+    ]
+  },
+  "note": "Repackaged from the available V16 FIX4 build. Existing project files preserved.",
+  "superseded_by": "V16 FIX6 REAL"
+}
