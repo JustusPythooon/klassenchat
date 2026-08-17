@@ -1,0 +1,16 @@
+{
+  "name": "klassencloud-render-supabase",
+  "version": "21.0.0",
+  "private": true,
+  "description": "KlassenCloud - Render + Supabase persistent backend",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.55.0",
+    "web-push": "^3.6.7"
+  }
+}
