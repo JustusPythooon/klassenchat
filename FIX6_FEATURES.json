@@ -1,5 +1,5 @@
 {
-  "version": "V24",
+  "version": "V25",
   "features": {
     "admin_only_role_management": {
       "roles": [

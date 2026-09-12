@@ -103,9 +103,18 @@ Chat-Bilder und Sprachnachrichten werden nicht dauerhaft im Browser gespeichert,
 - **Offline-Modus:** Im Profil aktivierbar. Bereits geladene GET-Daten werden lokal pro angemeldetem Benutzer zwischengespeichert und können bei Render-Ausfall offline angezeigt werden. Neue Änderungen werden erst wieder online gespeichert.
 
 
-## V24 Rollenregel
+## V25 Rollenregel
 - Rollen werden ausschließlich von Administratoren vergeben.
 - Schüler können keine Rollen beantragen oder sich selbst hochstufen.
 - 1. und 2. Klassensprecher sind reine Klassenrollen; je Klasse gibt es maximal einen pro Position.
 - Administratoren können weitere Administratoren hinzufügen.
 - Offline-Modus bleibt verfügbar.
+
+
+## V25 Rollen-Fix
+- Rollen können ausschließlich von Admins vergeben werden.
+- Lehrer ist eine globale Benutzerrolle und keine Klassenrolle; ein Lehrer kann nur durch Klassenmitgliedschaft mehreren Klassen zugeordnet werden.
+- 1. und 2. Klassensprecher sind reine Klassenrollen; je Klasse maximal einmal.
+- Klassensprecher erhalten kein Klassenleitungs-Panel.
+- Fehler `Cannot set properties of null (setting 'onchange')` entfernt: alte Rollen-Anfrage-Handler wurden aus dem Lehrer-Panel entfernt.
+- Alte `teacher`/`admin`-Klassenrollen werden beim Start automatisch zu normalen Mitgliedschaften migriert.

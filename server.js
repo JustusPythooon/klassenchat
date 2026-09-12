@@ -42,6 +42,25 @@ function migrateTimetableTimes(){
    t.endTime=addMinutes(t.startTime,Number(st.lessonMinutes||45));
  }
 }
+
+function normalizeClassRoles(){
+ let changed=false;
+ // Klassenrollen sind ausschließlich: Mitglied, 1. Klassensprecher, 2. Klassensprecher.
+ for(const m of db.memberships){
+   if(m.role==='teacher'||m.role==='admin'){m.role='member';changed=true;}
+ }
+ // Pro Klasse darf es höchstens einen 1. und einen 2. Klassensprecher geben.
+ for(const classId of db.classes.map(c=>c.id)){
+   for(const role of ['class_speaker_1','class_speaker_2']){
+     let kept=false;
+     for(const m of db.memberships.filter(x=>x.classId===classId && x.role===role)){
+       if(kept){m.role='member';changed=true;}else kept=true;
+     }
+   }
+ }
+ return changed;
+}
+
 function seedTimetable(){
  migrateTimetableTimes();
  let changed=false;
@@ -60,9 +79,8 @@ function auth(req,res){const u=me(req);if(!u){send(res,401,{error:'Nicht eingelo
 function admin(req,res){const u=auth(req,res);if(!u)return null;if(u.role!=='admin'){send(res,403,{error:'Nur Administratoren dürfen das.'});return null}return u}
 function staff(req,res){
  const u=auth(req,res); if(!u)return null;
- const classRoles=db.memberships.filter(m=>m.userId===u.id).map(m=>m.role).filter(r=>['class_speaker_1','class_speaker_2','teacher'].includes(r));
- if(u.role!=='admin'&&u.role!=='teacher'&&!classRoles.some(r=>r.startsWith('class_speaker_'))) {
-   send(res,403,{error:'Keine erweiterten Rechte.'}); return null;
+ if(u.role!=='admin'&&u.role!=='teacher'){
+   send(res,403,{error:'Nur Admins und Lehrer dürfen die Klassenleitung öffnen.'}); return null;
  }
  return u;
 }
@@ -289,14 +307,14 @@ if(req.method==='GET'&&p==='/api/admin/upload-codes'){const a=admin(req,res);if(
  if(req.method==='GET'&&p==='/api/staff/overview'){
   const u=staff(req,res);if(!u)return;
   const memberships=db.memberships.filter(m=>m.userId===u.id);
-  const classes=u.role==='admin'?db.classes:memberships.filter(m=>m.role==='teacher'||m.role?.startsWith('class_speaker_')).map(m=>db.classes.find(c=>c.id===m.classId)).filter(Boolean);
-  return send(res,200,{user:pub(u),classes,roles:memberships.map(m=>({classId:m.classId,role:m.role})),permissions:{announcement:u.role==='teacher'||u.role==='admin'||memberships.some(m=>m.role?.startsWith('class_speaker_')),timetable:u.role==='teacher'||u.role==='admin'}});
+  const classes=u.role==='admin'?db.classes:memberships.map(m=>db.classes.find(c=>c.id===m.classId)).filter(Boolean);
+  return send(res,200,{user:pub(u),classes,roles:memberships.map(m=>({classId:m.classId,role:m.role})),permissions:{announcement:u.role==='teacher'||u.role==='admin',timetable:u.role==='teacher'||u.role==='admin'}});
  }
  if(req.method==='POST'&&p==='/api/staff/announcements'){
   const u=staff(req,res);if(!u)return;const b=await parse(req),title=String(b.title||'').trim(),text=String(b.text||'').trim(),classId=Number(b.classId||0);
   if(!title||!text)return send(res,400,{error:'Titel und Text fehlen.'});
   const own= db.memberships.find(m=>m.userId===u.id&&m.classId===classId);
-  if(u.role!=='admin'&&(!own||!['teacher','class_speaker_1','class_speaker_2'].includes(own.role)))return send(res,403,{error:'Keine Berechtigung für diese Klasse.'});
+  if(u.role!=='admin'&&(!own||u.role!=='teacher'))return send(res,403,{error:'Du bist dieser Klasse nicht zugeordnet.'});
   db.announcements=db.announcements||[];const ann={id:Date.now()+Math.random(),title,text,audience:'class',classId,createdBy:u.id,active:true,createdAt:new Date().toISOString()};
   db.announcements.unshift(ann);audit(u.id,'STAFF_ANNOUNCEMENT_CREATE',`Klasse ${classId}: ${title}`);save();return send(res,200,{announcement:ann});
  }
@@ -308,15 +326,15 @@ if(req.method==='GET'&&p==='/api/admin/upload-codes'){const a=admin(req,res);if(
  if(req.method==='GET'&&p==='/api/admin/stats'){const a=admin(req,res);if(!a)return;return send(res,200,{users:db.users.length,active:db.users.filter(x=>x.status==='active').length,banned:db.users.filter(x=>x.status==='banned').length,admins:db.users.filter(x=>x.role==='admin').length,teachers:db.users.filter(x=>x.role==='teacher').length,classes:db.classes.length,classMembers:db.memberships.length,messages:db.messages.length,groups:db.groups.length,groupMembers:db.groupMembers.length,files:db.files.length,events:db.events.length})}
  if(req.method==='GET'&&p==='/api/admin/audit'){const a=admin(req,res);if(!a)return;return send(res,200,{logs:db.audit.map(x=>({...x,adminName:db.users.find(u=>u.id===x.adminId)?.name||'Unbekannt'}))})}
  if(req.method==='GET'&&p==='/api/admin/classes'){const a=admin(req,res);if(!a)return;return send(res,200,{classes:db.classes.map(c=>({...c,members:db.memberships.filter(m=>m.classId===c.id).map(m=>{const u=db.users.find(x=>x.id===m.userId);return u?{...pub(u),classRole:db.memberships.find(m=>m.userId===u.id&&m.classId===c.id)?.role||'member'}:null}).filter(Boolean)}))})}
- const ac=p.match(/^\/api\/admin\/classes\/([0-9]+(?:\.[0-9]+)?)\/members\/([0-9]+(?:\.[0-9]+)?)$/);if(ac){const a=admin(req,res);if(!a)return;const cid=Number(ac[1]),uid=Number(ac[2]);if(!db.classes.some(c=>c.id===cid)||!db.users.some(u=>u.id===uid))return send(res,404,{error:'Nicht gefunden'});if(req.method==='POST'){if(!member(uid,cid)){const target=db.users.find(x=>x.id===uid);db.memberships.push({userId:uid,classId:cid,role:target?.role==='teacher'?'teacher':'member'});audit(a.id,'CLASS_ADD_MEMBER',`User ${uid} -> Klasse ${cid}`);save()}return send(res,200,{ok:true})}if(req.method==='PATCH'){
+ const ac=p.match(/^\/api\/admin\/classes\/([0-9]+(?:\.[0-9]+)?)\/members\/([0-9]+(?:\.[0-9]+)?)$/);if(ac){const a=admin(req,res);if(!a)return;const cid=Number(ac[1]),uid=Number(ac[2]);if(!db.classes.some(c=>c.id===cid)||!db.users.some(u=>u.id===uid))return send(res,404,{error:'Nicht gefunden'});if(req.method==='POST'){if(!member(uid,cid)){db.memberships.push({userId:uid,classId:cid,role:'member'});audit(a.id,'CLASS_ADD_MEMBER',`User ${uid} -> Klasse ${cid}`);save()}return send(res,200,{ok:true})}if(req.method==='PATCH'){
   const b=await parse(req),role=String(b.role||'member');
-  if(!['member','teacher','class_speaker_1','class_speaker_2'].includes(role))return send(res,400,{error:'Ungültige Klassenrolle.'});
+  if(!['member','class_speaker_1','class_speaker_2'].includes(role))return send(res,400,{error:'Ungültige Klassenrolle.'});
   const m=db.memberships.find(m=>m.userId===uid&&m.classId===cid);if(!m)return send(res,404,{error:'Mitgliedschaft nicht gefunden.'});
   if(['class_speaker_1','class_speaker_2'].includes(role))db.memberships.forEach(x=>{if(x.classId===cid&&x.role===role&&x.userId!==uid)x.role='member'});
   m.role=role;audit(a.id,'CLASS_ROLE_UPDATE',`User ${uid} -> ${role} in Klasse ${cid}`);save();return send(res,200,{ok:true,role});
  }
  if(req.method==='DELETE'){db.memberships=db.memberships.filter(m=>!(m.userId===uid&&m.classId===cid));audit(a.id,'CLASS_REMOVE_MEMBER',`User ${uid} aus Klasse ${cid}`);save();return send(res,200,{ok:true})}}
- if(req.method==='POST'&&p==='/api/admin/classes'){const a=admin(req,res),b=await parse(req);if(!a)return;if(!String(b.name||'').trim())return send(res,400,{error:'Klassenname fehlt.'});const name=String(b.name).trim();if(db.classes.some(c=>c.name.toLowerCase()===name.toLowerCase()))return send(res,400,{error:'Klasse existiert bereits.'});const c={id:Date.now(),name,ownerId:a.id,createdAt:new Date().toISOString()};db.classes.push(c);db.memberships.push({userId:a.id,classId:c.id,role:'admin'});audit(a.id,'CLASS_CREATE',name);save();return send(res,200,{class:c})}
+ if(req.method==='POST'&&p==='/api/admin/classes'){const a=admin(req,res),b=await parse(req);if(!a)return;if(!String(b.name||'').trim())return send(res,400,{error:'Klassenname fehlt.'});const name=String(b.name).trim();if(db.classes.some(c=>c.name.toLowerCase()===name.toLowerCase()))return send(res,400,{error:'Klasse existiert bereits.'});const c={id:Date.now(),name,ownerId:a.id,createdAt:new Date().toISOString()};db.classes.push(c);db.memberships.push({userId:a.id,classId:c.id,role:'member'});audit(a.id,'CLASS_CREATE',name);save();return send(res,200,{class:c})}
  const acl=p.match(/^\/api\/admin\/classes\/([0-9]+(?:\.[0-9]+)?)$/);if(acl&&(req.method==='DELETE'||req.method==='PATCH')){
   const a=admin(req,res);if(!a)return;const cid=Number(acl[1]),cl=db.classes.find(c=>c.id===cid);if(!cl)return send(res,404,{error:'Klasse nicht gefunden.'});
   if(req.method==='PATCH'){const b=await parse(req),name=String(b.name||'').trim();if(name.length<1||name.length>40)return send(res,400,{error:'Klassenname ungültig.'});if(db.classes.some(x=>x.id!==cid&&x.name.toLowerCase()===name.toLowerCase()))return send(res,400,{error:'Klasse existiert bereits.'});cl.name=name;audit(a.id,'CLASS_RENAME',`Klasse ${cid} -> ${name}`);save();return send(res,200,{class:cl})}
@@ -326,9 +344,9 @@ if(req.method==='GET'&&p==='/api/admin/upload-codes'){const a=admin(req,res);if(
   audit(a.id,'CLASS_DELETE',`Klasse ${cid} (${cl.name})`);save();return send(res,200,{ok:true})
 }
  const ar=p.match(/^\/api\/admin\/users\/([0-9]+(?:\.[0-9]+)?)\/reset-password$/);if(ar&&req.method==='POST'){const a=admin(req,res);if(!a)return;const id=Number(ar[1]),u=db.users.find(x=>x.id===id);if(!u)return send(res,404,{error:'Benutzer nicht gefunden'});const b=await parse(req);const pw=String(b.password||'');if(pw.length<8)return send(res,400,{error:'Das neue Passwort muss mindestens 8 Zeichen haben.'});const h=hash(pw);u.passwordHash=h.hash;u.passwordSalt=h.salt;db.sessions=db.sessions.filter(s=>s.userId!==id);audit(a.id,'PASSWORD_RESET',`Passwort von User ${id} zurückgesetzt`);save();return send(res,200,{ok:true})}
- const au=p.match(/^\/api\/admin\/users\/([0-9]+(?:\.[0-9]+)?)$/);if(au){const a=admin(req,res);if(!a)return;const id=Number(au[1]),u=db.users.find(x=>x.id===id);if(!u)return send(res,404,{error:'Benutzer nicht gefunden'});if(req.method==='PATCH'){const b=await parse(req);if(id===a.id&&b.status==='banned')return send(res,400,{error:'Du kannst dich nicht selbst sperren.'});if(b.role&&['user','teacher','admin'].includes(b.role)){u.role=b.role;db.memberships.forEach(m=>{if(m.userId===u.id&&m.role!=='admin')m.role=b.role==='teacher'?'teacher':'member'})}if(b.status&&['active','banned'].includes(b.status))u.status=b.status;u.moderation=u.moderation||{};for(const k of ['nameHidden','bioHidden','avatarHidden'])if(typeof b[k]==='boolean')u.moderation[k]=b[k];audit(a.id,'USER_UPDATE',`User ${id}`);save();return send(res,200,{ok:true,user:pub(u)})}if(req.method==='DELETE'){if(id===a.id)return send(res,400,{error:'Du kannst dich nicht selbst löschen.'});db.users=db.users.filter(x=>x.id!==id);db.memberships=db.memberships.filter(m=>m.userId!==id);db.chats=db.chats.filter(c=>c.userA!==id&&c.userB!==id);db.groupMembers=db.groupMembers.filter(m=>m.userId!==id);db.groups=db.groups.filter(g=>g.ownerId!==id);for(const f of db.groupFiles.filter(f=>f.ownerId===id)) await deleteStorage(f.storageKey||f.stored);db.groupFiles=db.groupFiles.filter(f=>f.ownerId!==id);db.groupEvents=db.groupEvents.filter(e=>e.creatorId!==id);db.messages=db.messages.filter(m=>m.userId!==id);for(const f of db.files.filter(f=>f.ownerId===id)) await deleteStorage(f.storageKey||f.stored);db.files=db.files.filter(f=>f.ownerId!==id);db.events=db.events.filter(e=>e.creatorId!==id);audit(a.id,'USER_DELETE',`User ${id}`);save();return send(res,200,{ok:true})}}
+ const au=p.match(/^\/api\/admin\/users\/([0-9]+(?:\.[0-9]+)?)$/);if(au){const a=admin(req,res);if(!a)return;const id=Number(au[1]),u=db.users.find(x=>x.id===id);if(!u)return send(res,404,{error:'Benutzer nicht gefunden'});if(req.method==='PATCH'){const b=await parse(req);if(id===a.id&&b.status==='banned')return send(res,400,{error:'Du kannst dich nicht selbst sperren.'});if(b.role&&['user','teacher','admin'].includes(b.role)){u.role=b.role}if(b.status&&['active','banned'].includes(b.status))u.status=b.status;u.moderation=u.moderation||{};for(const k of ['nameHidden','bioHidden','avatarHidden'])if(typeof b[k]==='boolean')u.moderation[k]=b[k];audit(a.id,'USER_UPDATE',`User ${id}`);save();return send(res,200,{ok:true,user:pub(u)})}if(req.method==='DELETE'){if(id===a.id)return send(res,400,{error:'Du kannst dich nicht selbst löschen.'});db.users=db.users.filter(x=>x.id!==id);db.memberships=db.memberships.filter(m=>m.userId!==id);db.chats=db.chats.filter(c=>c.userA!==id&&c.userB!==id);db.groupMembers=db.groupMembers.filter(m=>m.userId!==id);db.groups=db.groups.filter(g=>g.ownerId!==id);for(const f of db.groupFiles.filter(f=>f.ownerId===id)) await deleteStorage(f.storageKey||f.stored);db.groupFiles=db.groupFiles.filter(f=>f.ownerId!==id);db.groupEvents=db.groupEvents.filter(e=>e.creatorId!==id);db.messages=db.messages.filter(m=>m.userId!==id);for(const f of db.files.filter(f=>f.ownerId===id)) await deleteStorage(f.storageKey||f.stored);db.files=db.files.filter(f=>f.ownerId!==id);db.events=db.events.filter(e=>e.creatorId!==id);audit(a.id,'USER_DELETE',`User ${id}`);save();return send(res,200,{ok:true})}}
  send(res,404,{error:'Nicht gefunden'})
 }
 function loginResponse(res,u){u.lastSeen=Date.now();const sid=crypto.randomBytes(32).toString('hex');sessions.set(sid,u.id);db.sessions=db.sessions.filter(x=>x.userId!==u.id||x.expiresAt<=Date.now());db.sessions.push({sid,userId:u.id,expiresAt:Date.now()+604800000,createdAt:new Date().toISOString()});save();return send(res,200,{ok:true,user:pub(u)},{'Set-Cookie':`sid=${sid}; HttpOnly; SameSite=Lax; Path=/; Max-Age=604800`})}
 const server=http.createServer(async(req,res)=>{try{const p=url.parse(req.url).pathname;if(p.startsWith('/api/'))return await api(req,res,p);let file=path.normalize(path.join(ROOT,p==='/'?'index.html':p));if(!file.startsWith(ROOT))return send(res,403,'Forbidden');if(!fs.existsSync(file)||fs.statSync(file).isDirectory())file=path.join(ROOT,'index.html');res.writeHead(200,{'Content-Type':mime[path.extname(file)]||'application/octet-stream'});fs.createReadStream(file).pipe(res)}catch(e){console.error(e);send(res,500,{error:'Serverfehler'})}});
-const port=Number(process.env.PORT||3000);server.on('error',e=>{console.error(e);process.exit(1)});(async()=>{try{await loadDB();let changed=seed();changed=seedTimetable()||changed;if(changed)await persist();await ensureBucket();server.listen(port,'0.0.0.0',()=>console.log(`KlassenCloud läuft auf Port ${port}`))}catch(e){console.error('Start fehlgeschlagen:',e);process.exit(1)}})();
+const port=Number(process.env.PORT||3000);server.on('error',e=>{console.error(e);process.exit(1)});(async()=>{try{await loadDB();let changed=seed();changed=normalizeClassRoles()||changed;changed=seedTimetable()||changed;if(changed)await persist();await ensureBucket();server.listen(port,'0.0.0.0',()=>console.log(`KlassenCloud läuft auf Port ${port}`))}catch(e){console.error('Start fehlgeschlagen:',e);process.exit(1)}})();
