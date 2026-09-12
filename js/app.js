@@ -81,23 +81,39 @@ if('serviceWorker' in navigator){
  });
 }
 const $=s=>document.querySelector(s);const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+function cleanOfflineCache(){
+ const uid=String(currentUser?.id||'guest');
+ const prefix='klassencloud-offline:'+uid+':';
+ for(let i=localStorage.length-1;i>=0;i--){
+  const k=localStorage.key(i)||'';
+  if(!k.startsWith(prefix))continue;
+  const endpoint=k.slice(prefix.length).split('?')[0];
+  if(!(endpoint==='/api/calendar'||endpoint.startsWith('/api/chat/class/')||endpoint.startsWith('/api/chat/reactions/'))){localStorage.removeItem(k)}
+ }
+}
+function offlineAllowed(u){
+ const path=String(u).split('?')[0];
+ return path==='/api/calendar'||path.startsWith('/api/chat/class/')||path.startsWith('/api/chat/reactions/');
+}
+function offlineKey(u){return 'klassencloud-offline:'+String(currentUser?.id||'guest')+':'+u}
 async function api(u,o={}){
- const method=(o.method||'GET').toUpperCase(), key='klassencloud-offline:'+String(currentUser?.id||'guest')+':'+u;
+ const method=(o.method||'GET').toUpperCase(), allowed=offlineAllowed(u), key=offlineKey(u);
  const offline=localStorage.getItem('klassencloud-offline-mode')==='1';
- if(method==='GET'&&offline){try{const c=localStorage.getItem(key);if(c)return JSON.parse(c)}catch{}}
+ if(method==='GET'&&offline&&allowed){try{const c=localStorage.getItem(key);if(c)return JSON.parse(c)}catch{}}
+ if(offline&&method!=='GET'&&allowed===false){throw Error('Offline: Diese Funktion benötigt eine Internetverbindung.')}
  try{
   const r=await fetch(u,{headers:{'Content-Type':'application/json',...(o.headers||{})},...o});let d={};try{d=await r.json()}catch{}
   if(!r.ok)throw Error(d.error||'Fehler');
-  if(method==='GET'){try{localStorage.setItem(key,JSON.stringify(d))}catch{}}
+  if(method==='GET'&&allowed){try{localStorage.setItem(key,JSON.stringify(d))}catch{}}
   return d;
  }catch(e){
-  if(method==='GET'){try{const c=localStorage.getItem(key);if(c){toast('Offline: gespeicherte Daten werden angezeigt.');return JSON.parse(c)}}catch{}}
+  if(method==='GET'&&allowed){try{const c=localStorage.getItem(key);if(c){toast('Offline: gespeicherte Daten werden angezeigt.');return JSON.parse(c)}}catch{}}
   throw e;
  }
 }
 function toast(x){const e=document.createElement('div');e.className='toast';e.textContent=x;$('#toasts').append(e);setTimeout(()=>e.remove(),2400)}
 function initials(n){return n.split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase()}
-async function boot(){if(location.protocol==='file:'){showAuth();const e=$('#loginError');e.textContent='Bitte öffne KlassenCloud über den gestarteten Server. Die Anmeldung benötigt die laufende App-API.';return}try{const d=await api('/api/me');currentUser=d.user;enter()}catch{showAuth()}}
+async function boot(){if(location.protocol==='file:'){showAuth();const e=$('#loginError');e.textContent='Bitte öffne KlassenCloud über den gestarteten Server. Die Anmeldung benötigt die laufende App-API.';return}try{const d=await api('/api/me');currentUser=d.user;cleanOfflineCache();enter()}catch{showAuth()}}
 function showAuth(){$('#authScreen').classList.remove('hidden')}
 function enter(){$('#authScreen').classList.add('hidden');$('#adminNav').hidden=currentUser.role!=='admin';$('#staffNav').hidden=!['admin','teacher'].includes(currentUser.role);render();api('/api/staff/overview').then(()=>{$('#staffNav').hidden=false}).catch(()=>{$('#staffNav').hidden=true});startNotificationPoll();if('Notification' in window&&Notification.permission==='granted')subscribeWebPush().catch(()=>{})}
 async function setView(v){view=v;document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===v));$('#breadcrumbs').textContent={dashboard:'Dashboard',chat:'Chats',cloud:'Cloud',groups:'Gruppen',calendar:'Termine',timetable:'Stundenplan',profile:'Profil',admin:'Administration',staff:'Klassenleitung'}[v]||v;render();if(v==='chat'){if(view==='chat')await chatView()}}
@@ -139,14 +155,23 @@ function renderNotificationPanel(){
 }
 async function chatView(){
  const a=$('#app');a.innerHTML='<div class="loading">Chats werden geladen …</div>';
+ const offline=localStorage.getItem('klassencloud-offline-mode')==='1';
  try{
-  const o=await api('/api/chat/overview'),users=await api('/api/chat/users'),groups=await api('/api/groups');
+  let classes=[],users={users:[]},groups={groups:[]},privateChats=[];
+  if(offline){
+   try{classes=JSON.parse(localStorage.getItem('klassencloud-offline-classes:'+String(currentUser?.id||'guest'))||'[]')}catch{}
+  }else{
+   const o=await api('/api/chat/overview');
+   classes=o.classes||[];
+   try{localStorage.setItem('klassencloud-offline-classes:'+String(currentUser?.id||'guest'),JSON.stringify(classes))}catch{}
+   users=await api('/api/chat/users');groups=await api('/api/groups');privateChats=o.privateChats||[];
+  }
   a.innerHTML=`<div class="chat-layout"><div class="card chat-list scroll-frame y">
-   <div class="section-head"><h2>Chats <span class="nav-badge chat-badge">${getUnreadCount()}</span></h2><button class="secondary" id="newGroup">＋ Gruppe</button></div>
-   <div class="chat-section"><b>🏫 Klassen</b>${o.classes.length?o.classes.map(c=>`<button class="chat-contact ${chatMode==='class'&&selectedClass===c.id?'active':''}" data-class="${c.id}"><div class="mini-avatar">👥</div><div><b>${esc(c.name)}</b><div class="muted">${c.memberCount} Mitglieder · geschützt</div></div></button>`).join(''):'<div class="muted pad">Keine Klasse freigeschaltet.</div>'}</div>
-   <div class="chat-section"><b>👥 Meine Gruppen</b>${groups.groups.length?groups.groups.map(g=>`<button class="chat-contact ${chatMode==='group'&&selectedGroup===g.id?'active':''}" data-group="${g.id}"><div class="mini-avatar">${initials(g.name)}</div><div><b>${esc(g.name)}</b><div class="muted">${g.memberCount} Mitglieder · ${g.closed?'🔒 geschlossen':'offen'}</div></div></button>`).join(''):'<div class="muted pad">Noch keine Gruppen.</div>'}</div>
-   <div class="chat-section"><b>🔒 Private Chats</b>${o.privateChats.map(c=>`<button class="chat-contact ${chatMode==='private'&&selectedUser===c.other.id?'active':''}" data-user="${c.other.id}"><div class="mini-avatar">${initials(c.other.name)}</div><div><b>${esc(c.other.name)}</b><div class="status ${c.other.online?'online':'offline'}">${c.other.online?'● Online':'○ Offline'}</div></div></button>`).join('')}<button class="secondary full" id="newPrivate">＋ Privaten Chat starten</button></div>
-  </div><div class="card chat-window" id="chatWindow"><div class="muted" style="margin:auto">Wähle links einen Chat.</div></div></div>`;
+   <div class="section-head"><h2>Klassenchat <span class="nav-badge chat-badge">${offline?'📴':getUnreadCount()}</span></h2>${offline?'':'<button class="secondary" id="newGroup">＋ Gruppe</button>'}</div>
+   <div class="chat-section"><b>🏫 Klassen</b>${classes.length?classes.map(c=>`<button class="chat-contact ${chatMode==='class'&&selectedClass===c.id?'active':''}" data-class="${c.id}"><div class="mini-avatar">👥</div><div><b>${esc(c.name)}</b><div class="muted">${c.memberCount||''} ${c.memberCount?'Mitglieder · ':''}geschützt</div></div></button>`).join(''):'<div class="muted pad">Keine gespeicherte Klasse verfügbar.</div>'}</div>
+   ${offline?'<div class="card muted" style="margin-top:12px">📴 Offline-Modus: Nur gespeicherte Klassenchats und Termine sind verfügbar.</div>':`<div class="chat-section"><b>👥 Meine Gruppen</b>${groups.groups.length?groups.groups.map(g=>`<button class="chat-contact ${chatMode==='group'&&selectedGroup===g.id?'active':''}" data-group="${g.id}"><div class="mini-avatar">${initials(g.name)}</div><div><b>${esc(g.name)}</b><div class="muted">${g.memberCount} Mitglieder · ${g.closed?'🔒 geschlossen':'offen'}</div></div></button>`).join(''):'<div class="muted pad">Noch keine Gruppen.</div>'}</div>
+   <div class="chat-section"><b>🔒 Private Chats</b>${privateChats.map(c=>`<button class="chat-contact ${chatMode==='private'&&selectedUser===c.other.id?'active':''}" data-user="${c.other.id}"><div class="mini-avatar">${initials(c.other.name)}</div><div><b>${esc(c.other.name)}</b><div class="status ${c.other.online?'online':'offline'}">${c.other.online?'● Online':'○ Offline'}</div></div></button>`).join('')}<button class="secondary full" id="newPrivate">＋ Privaten Chat starten</button></div>`}
+  </div><div class="card chat-window" id="chatWindow"><div class="muted" style="margin:auto">${offline?'Wähle einen gespeicherten Klassenchat.':'Wähle links einen Chat.'}</div></div></div>`;
   window.chatUsers=users.users;window.chatGroups=groups.groups;bind();
  }catch(e){a.innerHTML=`<div class="card">${esc(e.message)}</div>`}
 }
@@ -281,7 +306,7 @@ async function timetable(){
   <div class="card timetable-info"><b>⏱️ Individuelle Zeiten</b><span>Die Start- und Endzeit wird für jede einzelne Stunde gespeichert. Dadurch können die erste, zweite, dritte usw. Pause unterschiedlich lang sein. Der Stundenplan ist pro Klasse getrennt.</span></div>`:'<div class="card">Du bist noch keiner Klasse zugeordnet.</div>'}`;
  }catch(e){el.innerHTML=`<div class="card">${esc(e.message)}</div>`}
 }
-function profile(){const av=currentUser.avatarMode==='emoji'&&currentUser.avatarEmoji?currentUser.avatarEmoji:initials(currentUser.name);return `<div class="profile-grid"><div class="card profile-card"><div class="profile-big" style="${currentUser.avatarColor?`background:${esc(currentUser.avatarColor)}`:''}">${esc(av)}</div><h2>${esc(currentUser.name)}</h2><p class="muted">${currentUser.role==='admin'?'Administrator':'Klassenmitglied'}</p><p class="muted">${esc(currentUser.bio||'Noch keine Profilbeschreibung.')}</p></div><div class="card"><div class="section-head"><h2>Profil bearbeiten</h2></div><div class="form-row"><label>Name<input class="input" id="profileName" value="${esc(currentUser.name)}"></label><label>Profilfarbe<input class="input" id="profileColor" type="color" value="${esc(currentUser.avatarColor||'#38bdf8')}"></label></div><div class="form-row"><label>Profilbild-Typ<select class="input" id="avatarMode"><option value="letter" ${currentUser.avatarMode==='letter'?'selected':''}>Buchstabe</option><option value="emoji" ${currentUser.avatarMode==='emoji'?'selected':''}>Emoji / Unicode</option></select></label><label>Emoji oder Zeichen<input class="input" id="avatarEmoji" maxlength="32" value="${esc(currentUser.avatarEmoji||'')}" placeholder="z. B. 🚀, 🐱, ☀️, 𝄞 …"></label></div><div class="muted">Du kannst hier praktisch jedes Unicode-Zeichen bzw. Emoji einfügen, das dein Gerät unterstützt.</div><label>Über dich<textarea class="input" id="profileBio" maxlength="160" rows="3" placeholder="Kurze Profilbeschreibung">${esc(currentUser.bio||'')}</textarea></label><button class="primary" id="saveProfile">💾 Profil speichern</button><div class="section-head"><h2>Design</h2></div><div class="design-presets"><button class="secondary" data-preset="current">Aktuell</button><button class="secondary" data-preset="white">Weiße Version</button><button class="secondary" data-preset="midnight">Midnight</button><button class="secondary" data-preset="ocean">Ocean</button></div><div class="form-row"><label>Akzentfarbe<input class="input" id="designAccent" type="color" value="${esc(state.accent||'#38bdf8')}"></label><label>Hintergrund<input class="input" id="designBg" type="color" value="${esc(state.bg||'#0b1220')}"></label></div><div class="form-row"><label>Panel-Farbe<input class="input" id="designPanel" type="color" value="${esc(state.panel||'#111c2e')}"></label><label>Eckenradius<input class="input" id="designRadius" type="range" min="8" max="30" value="${esc(state.radius)}"></label></div><button class="secondary" id="saveDesignBtn">💾 Eigenes Design speichern</button><div class="section-head"><h2>📴 Offline-Modus</h2></div><div class="muted">Lädt gespeicherte Inhalte ohne Render-Server. Neue Nachrichten oder Änderungen werden erst wieder online gespeichert.</div><label class="list-row"><span>📴</span><div class="grow"><b>Offline-Modus</b><div class="muted">Nur bereits geladene Daten verwenden</div></div><input id="offlineMode" type="checkbox" ${localStorage.getItem("klassencloud-offline-mode")==="1"?"checked":""}></label></div></div>`}
+function profile(){const av=currentUser.avatarMode==='emoji'&&currentUser.avatarEmoji?currentUser.avatarEmoji:initials(currentUser.name);return `<div class="profile-grid"><div class="card profile-card"><div class="profile-big" style="${currentUser.avatarColor?`background:${esc(currentUser.avatarColor)}`:''}">${esc(av)}</div><h2>${esc(currentUser.name)}</h2><p class="muted">${currentUser.role==='admin'?'Administrator':'Klassenmitglied'}</p><p class="muted">${esc(currentUser.bio||'Noch keine Profilbeschreibung.')}</p></div><div class="card"><div class="section-head"><h2>Profil bearbeiten</h2></div><div class="form-row"><label>Name<input class="input" id="profileName" value="${esc(currentUser.name)}"></label><label>Profilfarbe<input class="input" id="profileColor" type="color" value="${esc(currentUser.avatarColor||'#38bdf8')}"></label></div><div class="form-row"><label>Profilbild-Typ<select class="input" id="avatarMode"><option value="letter" ${currentUser.avatarMode==='letter'?'selected':''}>Buchstabe</option><option value="emoji" ${currentUser.avatarMode==='emoji'?'selected':''}>Emoji / Unicode</option></select></label><label>Emoji oder Zeichen<input class="input" id="avatarEmoji" maxlength="32" value="${esc(currentUser.avatarEmoji||'')}" placeholder="z. B. 🚀, 🐱, ☀️, 𝄞 …"></label></div><div class="muted">Du kannst hier praktisch jedes Unicode-Zeichen bzw. Emoji einfügen, das dein Gerät unterstützt.</div><label>Über dich<textarea class="input" id="profileBio" maxlength="160" rows="3" placeholder="Kurze Profilbeschreibung">${esc(currentUser.bio||'')}</textarea></label><button class="primary" id="saveProfile">💾 Profil speichern</button><div class="section-head"><h2>Design</h2></div><div class="design-presets"><button class="secondary" data-preset="current">Aktuell</button><button class="secondary" data-preset="white">Weiße Version</button><button class="secondary" data-preset="midnight">Midnight</button><button class="secondary" data-preset="ocean">Ocean</button></div><div class="form-row"><label>Akzentfarbe<input class="input" id="designAccent" type="color" value="${esc(state.accent||'#38bdf8')}"></label><label>Hintergrund<input class="input" id="designBg" type="color" value="${esc(state.bg||'#0b1220')}"></label></div><div class="form-row"><label>Panel-Farbe<input class="input" id="designPanel" type="color" value="${esc(state.panel||'#111c2e')}"></label><label>Eckenradius<input class="input" id="designRadius" type="range" min="8" max="30" value="${esc(state.radius)}"></label></div><button class="secondary" id="saveDesignBtn">💾 Eigenes Design speichern</button><div class="section-head"><h2>📴 Offline-Modus</h2></div><div class="muted">Offline-Funktion nur für gespeicherte Termine und Klassenchats. Andere Bereiche bleiben online.</div><label class="list-row"><span>📴</span><div class="grow"><b>Offline-Modus</b><div class="muted">Nur Termine und Klassenchat offline verwenden</div></div><input id="offlineMode" type="checkbox" ${localStorage.getItem("klassencloud-offline-mode")==="1"?"checked":""}></label></div></div>`}
 async function staffView(){
  const a=$('#app');a.innerHTML='<div class="loading">Klassenleitung wird geladen …</div>';
  try{
