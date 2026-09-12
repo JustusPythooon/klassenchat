@@ -91,3 +91,21 @@ Wenn `GET /api/push/config` `enabled:false` liefert, fehlen die VAPID-Umgebungsv
 
 ### Medien
 Chat-Bilder und Sprachnachrichten werden nicht dauerhaft im Browser gespeichert, sondern im privaten Supabase-Storage. Standardmäßig sind Anhänge auf 15 MB begrenzt.
+
+
+## Rollen, Freigaben und Offline-Modus (V23)
+
+- **Admin:** vollständige Verwaltung wie bisher.
+- **Lehrer:** eigenes, deutlich kleineres „Klassenleitung“-Panel; keine Admin-Verwaltung.
+- **1. / 2. Klassensprecher:** klassenbezogene Rolle mit kleinem Panel.
+- **Admin-Freigabe:** Lehrer- und Klassensprecher-Anfragen müssen von einem echten Admin bestätigt werden.
+- **Klassenrollen:** Ein Admin kann Mitglieder direkt als Lehrer, 1. Klassensprecher oder 2. Klassensprecher einer Klasse setzen.
+- **Offline-Modus:** Im Profil aktivierbar. Bereits geladene GET-Daten werden lokal pro angemeldetem Benutzer zwischengespeichert und können bei Render-Ausfall offline angezeigt werden. Neue Änderungen werden erst wieder online gespeichert.
+
+
+## V24 Rollenregel
+- Rollen werden ausschließlich von Administratoren vergeben.
+- Schüler können keine Rollen beantragen oder sich selbst hochstufen.
+- 1. und 2. Klassensprecher sind reine Klassenrollen; je Klasse gibt es maximal einen pro Position.
+- Administratoren können weitere Administratoren hinzufügen.
+- Offline-Modus bleibt verfügbar.

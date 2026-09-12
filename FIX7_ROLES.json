@@ -1,0 +1,14 @@
+{
+  "version": "V24",
+  "name": "Admin-only Rollenverwaltung",
+  "changes": [
+    "Nur Administratoren können Rollen vergeben.",
+    "Schüler können keine Rollen beantragen oder sich selbst hochstufen.",
+    "Admin kann beliebig viele weitere Administratoren hinzufügen.",
+    "Lehrer können über Benutzer & Rechte vergeben werden.",
+    "1. und 2. Klassensprecher sind reine Rollen innerhalb einer Klasse.",
+    "Pro Klasse kann jeweils nur ein 1. und ein 2. Klassensprecher aktiv sein.",
+    "Das vereinfachte Lehrer/Klassensprecher-Panel bleibt erhalten.",
+    "Offline-Modus bleibt erhalten und der Service-Worker-Cache wurde auf V24 aktualisiert."
+  ]
+}

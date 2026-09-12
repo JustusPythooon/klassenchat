@@ -1,5 +1,5 @@
 {
-  "version": "V16 FIX6",
+  "version": "V24",
   "features": {
     "admin_only_role_management": {
       "roles": [
@@ -36,8 +36,27 @@
       "display_on_dashboard": true,
       "dismissible": true,
       "persisted": true
+    },
+    "class_speaker_roles": {
+      "roles": [
+        "class_speaker_1",
+        "class_speaker_2"
+      ],
+      "class_scoped": true,
+      "one_holder_per_role": true
+    },
+    "role_approval": {
+      "teacher_and_class_speaker_requests_require_admin_approval": true
+    },
+    "offline_mode": {
+      "enabled": true,
+      "local_get_cache": true,
+      "writes_require_online_connection": true
     }
   },
   "note": "This package is generated from the available FIX5 archive. Existing files are preserved.",
-  "superseded_by": "V16 FIX6 REAL"
+  "superseded_by": "V16 FIX6 REAL",
+  "changes": [
+    "Rollenvergabe ausschließlich durch Administratoren; Schüler können keine Rollen beantragen; 1./2. Klassensprecher sind reine Klassenrollen; mehrere Administratoren möglich; Offline-Modus bleibt aktiv."
+  ]
 }
