@@ -118,3 +118,11 @@ Chat-Bilder und Sprachnachrichten werden nicht dauerhaft im Browser gespeichert,
 - Klassensprecher erhalten kein Klassenleitungs-Panel.
 - Fehler `Cannot set properties of null (setting 'onchange')` entfernt: alte Rollen-Anfrage-Handler wurden aus dem Lehrer-Panel entfernt.
 - Alte `teacher`/`admin`-Klassenrollen werden beim Start automatisch zu normalen Mitgliedschaften migriert.
+
+
+## V27 Rollen
+- Admin: vollständige Verwaltung und Rollenvergabe.
+- Lehrer: eingeschränktes Klassenleitungs-Panel für eigene Klassen.
+- Verwaltung: Stundenplan und Klassenankündigungen, ohne Rollenverwaltung.
+- 1./2. Klassensprecher: reine Klassenrollen.
+- Schüler: keine Verwaltungs-Panels und keine Rollenvergabe.
